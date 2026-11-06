@@ -17,6 +17,8 @@ export function validateProject(value) {
     if(r.sourceId!==undefined && (typeof r.sourceId!=='string'||(r.sourceId && !value.records.some(s=>s.kind==='source'&&s.id===r.sourceId))))throw new Error('A note links to a source that is not in this project.');
     if(r.attachments!==undefined){if(!Array.isArray(r.attachments)||r.attachments.length>30||new Set(r.attachments).size!==r.attachments.length)throw new Error('A note may have up to 30 distinct attachments.');for(const path of r.attachments)validateAttachmentPath(path);}
   }
+  for(const r of value.records){if(r.noteIds!==undefined && (r.kind!=='outline'||!Array.isArray(r.noteIds)||new Set(r.noteIds).size!==r.noteIds.length||r.noteIds.some(id=>!value.records.some(n=>n.kind==='note'&&n.id===id))))throw new Error('An outline contains an invalid note reference.');}
+  const placed=value.records.filter(r=>r.kind==='outline').flatMap(r=>r.noteIds||[]);if(new Set(placed).size!==placed.length)throw new Error('A note must have only one place on the storyboard.');
   if(value.milestones!==undefined)validateMilestones(value.milestones);
   return value;
 }

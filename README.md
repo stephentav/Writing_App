@@ -40,7 +40,7 @@ Approved project data lives in `Writing Room/project.json` inside the selected f
 No file content or audio is sent to an AI service in this release. The Site host still serves the application and may maintain ordinary access logs. There is no API key in source or browser storage.
 
 ## Verification and limitations
-20 automated tests cover model behavior, reviewed saves, conflict rejection, recovery copies, and DOM interactions. Build and HTTP asset checks pass. Actual Chrome picker permissions, microphone recording, PDF rendering, and visual layout require the [manual pilot](docs/PILOT.md); they were not browser-tested in the authoring session.
+23 automated tests cover model behavior, reviewed saves, conflict rejection, recovery copies, and DOM interactions. Build and HTTP asset checks pass. Actual Chrome picker permissions, microphone recording, PDF rendering, and visual layout require the [manual pilot](docs/PILOT.md); they were not browser-tested in the authoring session.
 
 PDF previews use the browser viewer, with no OCR or text extraction yet. Word previews extract text only, so layout and page numbers may differ. Files are limited to 25 MB for preview. Files are refreshed manually. Folder scanning is limited to eight levels and 3,000 entries. Use a dedicated assignment folder.
 
@@ -58,3 +58,8 @@ My Desk includes four expandable research milestones with editable target, crite
 Sources expand into multiple linked notes. Add a note from a source card or choose its source in the note editor. Existing free-text source descriptions are preserved; legacy notes appear as unassigned until the student explicitly links them. Links use stable record IDs, so renaming a source retains its notes.
 
 Notes can link to up to 30 files already inside the selected project folder: PNG, JPEG, GIF, WebP, PDF, DOCX, TXT, or Markdown. Add files using Finder, then use Refresh attachment choices in the editor. Approval saves relative links only; files are not copied or uploaded. Attachments open in the read-only preview. Moving or renaming a file requires relinking it. SVG, HEIC, old DOC, and Google Docs shortcuts are not supported attachments. Image OCR and AI interpretation remain deferred.
+
+## Storyboard
+The working outline is now a storyboard with an unplaced idea bank and ordered sections. Notes are linked by ID, so source details and student wording stay attached. Drag a note or use its Move to menu; reorder notes and sections with buttons. Every change goes through review and approval. Existing outline records remain compatible.
+
+Plan with AI prepares an editable prompt containing the assignment, research question, section descriptions, and only the notes explicitly selected by the student. Copy it into ChatGPT and apply chosen suggestions manually. No content is sent automatically; attachments are not included. Integrated AI remains pending the secure API connection.

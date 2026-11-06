@@ -24,3 +24,12 @@ test('source first workflow creates nested notes and displays approved attachmen
   const saved=JSON.parse(root.children.get('Writing Room').children.get('project.json').data);assert.equal(saved.records[1].sourceId,sourceId);assert.deepEqual(saved.records[1].attachments,['page.png']);
  }finally{dom.window.close();}
 });
+
+test('storyboard moves require approval, cancel preserves order, and approved links reload',async()=>{const {dom,w,root,$}=await fixture();try{
+ for(const [kind,title] of [['note','A memory'],['outline','Opening']]){$('new-'+kind).click();$('field-title').value=title;$('field-body').value='My words';$('editor-form').dispatchEvent(new w.Event('submit',{cancelable:true}));$('approve').click();await tick();}
+ const file=root.children.get('Writing Room').children.get('project.json'),before=file.data;const sectionId=JSON.parse(before).records.find(r=>r.kind==='outline').id;
+ let select=w.document.querySelector('.idea-card select');select.value=sectionId;select.dispatchEvent(new w.Event('change'));assert.equal(file.data,before);$('review').close();assert.equal(file.data,before);assert.equal(select.value,'');
+ select.value=sectionId;select.dispatchEvent(new w.Event('change'));$('approve').click();await tick();assert.equal(JSON.parse(file.data).records.find(r=>r.kind==='outline').noteIds.length,1);
+ $('refresh').click();await tick();assert.equal(w.document.querySelectorAll('.story-lane[data-section="'+sectionId+'"] .idea-card').length,1);
+ $('plan-ai').click();$('prepare-ai').click();assert.doesNotMatch($('ai-context').value,/A memory/);w.document.querySelector('#ai-notes input').checked=true;$('prepare-ai').click();assert.match($('ai-context').value,/A memory/);
+ }finally{dom.window.close();}});

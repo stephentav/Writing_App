@@ -1,3 +1,4 @@
+import {renderStoryboard,coachingPrompt} from './storyboard.mjs';
 import mammoth from 'mammoth/mammoth.browser.js';
 import {blankProject,addRecord,toggleTask,nextAction,dateStatus,supported,blankMilestones,validateMilestones,importMilestones,sourceGroups,validateProject} from './model.mjs';
 import {readState,saveApproved,saveRecording,listDocuments,rememberFolder,recallFolder,resolveAttachment} from './storage.mjs';
@@ -38,7 +39,7 @@ function render(){
   $('saved-label').textContent=project.updatedAt?`Saved ${new Date(project.updatedAt).toLocaleString()}`:'Nothing saved yet';
   renderMilestones();
   renderSources();
-  renderRecords('outline',project.records.filter(r=>r.kind==='outline'),'Start with one point you want the reader to understand. You can add and reorder sections as your thinking develops.');
+  renderStoryboard({container:$('outline'),project,node,stage,edit:openEditor});
   const tasks=$('tasks');tasks.replaceChildren();const items=project.records.filter(r=>r.kind==='task');
   if(!items.length)tasks.append(node('div','Choose one small task for your next work session.','empty'));
   for(const r of items){const card=node('div',undefined,'card task'+(r.done?' done':''));const toggle=node('button',r.done?'✓':'');toggle.setAttribute('aria-label',`${r.done?'Reopen':'Complete'} task: ${r.title}`);toggle.onclick=()=>stage(toggleTask(project,r.id),[{label:r.title,before:r.done?'Completed':'Outstanding',after:r.done?'Outstanding':'Completed'}]);const body=node('div',undefined,'task-content');body.append(node('h3',r.title),node('small',[r.due?`${r.due} · ${dateStatus(r.due)}`:'No date set',r.body].filter(Boolean).join(' — ')));const edit=node('button','Edit','text-button');edit.onclick=()=>openEditor('task',r);card.append(toggle,body,edit);tasks.append(card);}
@@ -170,3 +171,12 @@ $('save-audio').onclick=()=>{proposal={type:'audio'};$('review-destination').tex
 window.addEventListener('beforeunload',e=>{if(dirty()){e.preventDefault();e.returnValue='';}});
 window.addEventListener('pagehide',cleanupStream);
 if(!window.showDirectoryPicker){$('choose').disabled=true;notify('Use desktop Chrome to access a local project folder.',true);}
+
+$('plan-ai').onclick=()=>{
+ const list=$('ai-notes');list.replaceChildren();$('ai-context').value='';$('ai-copy-status').textContent='';$('copy-ai').disabled=true;
+ for(const note of project.records.filter(r=>r.kind==='note')){const label=node('label',undefined,'attachment-option'),input=document.createElement('input');input.type='checkbox';input.value=note.id;label.append(input,node('span',note.title));list.append(label);}
+ if(!list.children.length)list.append(node('p','No notes yet. You can still discuss the assignment and your existing sections.'));
+ $('ai-coach').showModal();
+};
+$('prepare-ai').onclick=()=>{$('ai-context').value=coachingPrompt(project,[...$('ai-notes').querySelectorAll('input:checked')].map(i=>i.value));$('copy-ai').disabled=false;};
+$('copy-ai').onclick=async()=>{try{await navigator.clipboard.writeText($('ai-context').value);$('ai-copy-status').textContent='Copied. Paste into ChatGPT to start the conversation. Apply the suggestions you choose to your board.';}catch{$('ai-context').focus();$('ai-context').select();$('ai-copy-status').textContent='Select and copy the text manually, then paste it into ChatGPT.';}};

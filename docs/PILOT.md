@@ -37,3 +37,5 @@ The student can capture one thought, attach a source, add one next step, approve
 - Cancel an attachment review; no project update should be saved.
 - Move an attached file externally; opening the old link should report that it is missing. Relink through Edit note.
 - Uncheck an attachment and approve; the file must remain on disk.
+
+Storyboard checks: create two sections and multiple notes; drag or use Move to; cancel a move; approve a move and reopen the folder; reorder sections and notes; confirm source details remain attached. Test keyboard menus and narrow-screen layout. Plan with AI should include only selected note text and should not send anything automatically. Native browser drag and layout still need manual verification.
