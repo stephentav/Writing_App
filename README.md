@@ -40,7 +40,7 @@ Approved project data lives in `Writing Room/project.json` inside the selected f
 No file content or audio is sent to an AI service in this release. The Site host still serves the application and may maintain ordinary access logs. There is no API key in source or browser storage.
 
 ## Verification and limitations
-16 automated tests cover model behavior, reviewed saves, conflict rejection, recovery copies, and DOM interactions. Build and HTTP asset checks pass. Actual Chrome picker permissions, microphone recording, PDF rendering, and visual layout require the [manual pilot](docs/PILOT.md); they were not browser-tested in the authoring session.
+20 automated tests cover model behavior, reviewed saves, conflict rejection, recovery copies, and DOM interactions. Build and HTTP asset checks pass. Actual Chrome picker permissions, microphone recording, PDF rendering, and visual layout require the [manual pilot](docs/PILOT.md); they were not browser-tested in the authoring session.
 
 PDF previews use the browser viewer, with no OCR or text extraction yet. Word previews extract text only, so layout and page numbers may differ. Files are limited to 25 MB for preview. Files are refreshed manually. Folder scanning is limited to eight levels and 3,000 entries. Use a dedicated assignment folder.
 
@@ -53,3 +53,8 @@ See [AI integration boundary](docs/AI-INTEGRATION.md). The parent can configure 
 
 ## Instructor milestones
 My Desk includes four expandable research milestones with editable target, criteria, evidence, rationale, and date fields. Labels are not computed progress. Use Edit milestones or Import plan (JSON with a milestones array) and approve the displayed changes. Existing projects without milestones remain compatible. Personal plan imports stay outside the repository.
+
+## Sources, notes, and attachments
+Sources expand into multiple linked notes. Add a note from a source card or choose its source in the note editor. Existing free-text source descriptions are preserved; legacy notes appear as unassigned until the student explicitly links them. Links use stable record IDs, so renaming a source retains its notes.
+
+Notes can link to up to 30 files already inside the selected project folder: PNG, JPEG, GIF, WebP, PDF, DOCX, TXT, or Markdown. Add files using Finder, then use Refresh attachment choices in the editor. Approval saves relative links only; files are not copied or uploaded. Attachments open in the read-only preview. Moving or renaming a file requires relinking it. SVG, HEIC, old DOC, and Google Docs shortcuts are not supported attachments. Image OCR and AI interpretation remain deferred.

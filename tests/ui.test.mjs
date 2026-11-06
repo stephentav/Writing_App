@@ -10,3 +10,17 @@ test('cancel review keeps rough text and leaves folder untouched',async()=>{cons
 test('project plan review shows deadline and next action then saves them',async()=>{const {dom,w,root,$}=await fixture();try{$('edit-plan').click();$('field-title').value='History paper';$('field-due').value='2026-12-01';$('field-next').value='Find one passage';$('editor-form').dispatchEvent(new w.Event('submit',{cancelable:true}));assert.match($('review-content').textContent,/Find one passage/);$('approve').click();await tick();assert.equal($('next-action').textContent,'Find one passage');assert.equal($('project-title').textContent,'History paper');}finally{dom.window.close();}});
 
 test('milestone editor reviews and saves the instructor fields',async()=>{const {dom,w,root,$}=await fixture();try{$('edit-milestones').click();$('field-m0_target').value='Compare accounts';$('field-m0_criteria').value='Explain two differences';$('field-m0_due').value='2026-12-01';$('editor-form').dispatchEvent(new w.Event('submit',{cancelable:true}));assert.match($('review-content').textContent,/Explain two differences/);assert.equal(root.children.size,0);$('approve').click();await tick();const saved=JSON.parse(root.children.get('Writing Room').children.get('project.json').data);assert.equal(saved.milestones[0].criteria,'Explain two differences');assert.equal(saved.milestones[1].due,'');assert.match($('milestones').textContent,/Compare accounts/);}finally{dom.window.close();}});
+
+test('source first workflow creates nested notes and displays approved attachment links',async()=>{
+ const {dom,w,root,$}=await fixture();try{
+  const image=await root.getFileHandle('page.png',{create:true});image.data='image fixture';$('refresh').click();await tick();
+  $('new-source').click();$('field-title').value='A book';$('field-body').value='Author and edition';$('editor-form').dispatchEvent(new w.Event('submit',{cancelable:true}));$('approve').click();await tick();
+  const sourceId=JSON.parse(root.children.get('Writing Room').children.get('project.json').data).records[0].id;
+  w.document.querySelector('[data-add-note]').click();assert.equal($('field-sourceId').value,sourceId);
+  $('field-title').value='First note';$('field-body').value='My interpretation';w.document.querySelector('input[name="attachments"]').checked=true;
+  $('editor-form').dispatchEvent(new w.Event('submit',{cancelable:true}));assert.match($('review-content').textContent,/page.png/);$('approve').click();await tick();
+  w.document.querySelector('[data-add-note]').click();$('field-title').value='Second note';$('editor-form').dispatchEvent(new w.Event('submit',{cancelable:true}));$('approve').click();await tick();
+  assert.equal(w.document.querySelectorAll('.source-group .nested-note').length,2);assert.match(w.document.querySelector('.source-count').textContent,/2 notes/);assert.match(w.document.querySelector('.attachment-button').textContent,/page.png/);assert.equal(image.data,'image fixture');
+  const saved=JSON.parse(root.children.get('Writing Room').children.get('project.json').data);assert.equal(saved.records[1].sourceId,sourceId);assert.deepEqual(saved.records[1].attachments,['page.png']);
+ }finally{dom.window.close();}
+});

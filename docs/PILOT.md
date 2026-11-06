@@ -3,7 +3,7 @@
 Use a disposable assignment folder with copies. No API key is required.
 
 ## Automated checks already run
-`npm test`: 16 passing tests; `npm run build`: passes. HTTP preview returned 200 for HTML, JS, and CSS. These checks do not exercise actual browser permissions, microphone hardware, PDF rendering, or visual layout.
+`npm test`: 20 passing tests; `npm run build`: passes. HTTP preview returned 200 for HTML, JS, and CSS. These checks do not exercise actual browser permissions, microphone hardware, PDF rendering, or visual layout.
 
 ## Manual checks — pending
 - Open the deployed URL in a regular top-level Chrome tab. Folder picker may not work inside an embedded preview.
@@ -28,3 +28,12 @@ Use a disposable assignment folder with copies. No API key is required.
 
 ## Pilot success
 The student can capture one thought, attach a source, add one next step, approve a save, and resume without reconstructing the work. Ask what felt like extra administration before adding features.
+
+## Source-and-note checks
+- Create a source, add two notes inside it, reopen the project, and confirm grouping.
+- Rename the source; both notes must remain linked.
+- Link a legacy unassigned note, then change its source through reviewed edits.
+- Attach a PNG and a PDF from nested project folders; preview each and verify original bytes are unchanged.
+- Cancel an attachment review; no project update should be saved.
+- Move an attached file externally; opening the old link should report that it is missing. Relink through Edit note.
+- Uncheck an attachment and approve; the file must remain on disk.

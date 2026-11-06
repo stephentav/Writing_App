@@ -1,4 +1,4 @@
-import {blankProject, validateProject, snapshot} from './model.mjs';
+import {blankProject, validateProject, snapshot, validateAttachmentPath} from './model.mjs';
 export const APP_DIR='Writing Room';
 export const STATE_FILE='project.json';
 async function child(directory,name) {
@@ -53,7 +53,7 @@ export async function listDocuments(root) {
       if(name.startsWith('.') || name===APP_DIR || name==='node_modules')continue;
       const path=prefix+name;
       if(handle.kind==='directory')await walk(handle,path+'/',depth+1);
-      else if(/\.(txt|md|pdf|docx|gdoc|doc)$/i.test(name))results.push({name,path,handle});
+      else if(/\.(txt|md|pdf|docx|gdoc|doc|png|jpe?g|gif|webp)$/i.test(name))results.push({name,path,handle});
     }
   }
   await walk(root);return results.sort((a,b)=>a.path.localeCompare(b.path));
@@ -64,3 +64,9 @@ export async function rememberFolder(handle) {
 }
 export async function recallFolder(){const db=await openDB();try{return await new Promise((resolve,reject)=>{const req=db.transaction('handles').objectStore('handles').get('last');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}finally{db.close();}}
 function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open('writing-room',1);req.onupgradeneeded=()=>req.result.createObjectStore('handles');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+
+export async function resolveAttachment(root,path){
+ validateAttachmentPath(path);const parts=path.split('/');let dir=root;
+ for(const part of parts.slice(0,-1))dir=await dir.getDirectoryHandle(part);
+ return {name:parts.at(-1),path,handle:await dir.getFileHandle(parts.at(-1))};
+}

@@ -22,3 +22,22 @@ test('audio requires separate approval and never writes a draft',async()=>{const
 import {blankMilestones,importMilestones} from '../src/model.mjs';
 test('milestone import preserves supplied text and leaves unknowns blank',()=>{const rows=blankMilestones();rows[0].target='Student wording';const result=importMilestones(JSON.stringify({milestones:rows}));assert.equal(result[0].target,'Student wording');assert.equal(result[1].criteria,'');assert.equal(result[0].due,'');});
 test('legacy projects remain valid; malformed milestone data cannot be saved',()=>{assert.doesNotThrow(()=>validateProject(blankProject()));assert.throws(()=>validateProject({...blankProject(),milestones:[{}]}));});
+
+import {sourceGroups,validateAttachmentPath} from '../src/model.mjs';
+import {resolveAttachment} from '../src/storage.mjs';
+test('multiple notes share a stable source link across source renaming',()=>{
+ let p=addRecord(blankProject(),{...record,kind:'source',title:'Book'});const sourceId=p.records[0].id;
+ p=addRecord(p,{...record,sourceId,attachments:['images/page.png']});p=addRecord(p,{...record,title:'Second note',sourceId});p=addRecord(p,{...record,title:'Legacy free note'});
+ p.records[0].title='Renamed book';const groups=sourceGroups(validateProject(p));assert.equal(groups.sources[0].notes.length,2);assert.equal(groups.sources[0].source.title,'Renamed book');assert.equal(groups.unassigned.length,1);
+});
+test('dangling source IDs and unsafe attachment paths are rejected',()=>{
+ assert.throws(()=>addRecord(blankProject(),{...record,sourceId:'missing'}));
+ for(const path of ['../secret.txt','/outside.png','Writing Room/project.json','images/../../x.png','image.svg','a\\b.png','https://example.com/pic.png'])assert.throws(()=>validateAttachmentPath(path));
+ assert.equal(validateAttachmentPath('reading/chapter 1.pdf'),'reading/chapter 1.pdf');
+});
+test('attachment links roundtrip without copying or modifying the target file',async()=>{
+ const root=new Directory();const images=await root.getDirectoryHandle('images',{create:true});const file=await images.getFileHandle('page.png',{create:true});file.data='original image';
+ const p=addRecord(blankProject(),{...record,attachments:['images/page.png']});const saved=await saveApproved(root,null,p,true);
+ assert.equal(saved.project.records[0].attachments[0],'images/page.png');assert.equal(file.data,'original image');assert.equal((await resolveAttachment(root,'images/page.png')).handle,file);
+ await assert.rejects(resolveAttachment(root,'images/missing.png'));await assert.rejects(resolveAttachment(root,'../outside.png'));
+});
