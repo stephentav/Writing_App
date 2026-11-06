@@ -1,5 +1,5 @@
 import mammoth from 'mammoth/mammoth.browser.js';
-import {blankProject,addRecord,toggleTask,nextAction,dateStatus,supported} from './model.mjs';
+import {blankProject,addRecord,toggleTask,nextAction,dateStatus,supported,blankMilestones,validateMilestones,importMilestones} from './model.mjs';
 import {readState,saveApproved,saveRecording,listDocuments,rememberFolder,recallFolder} from './storage.mjs';
 const $=id=>document.getElementById(id);
 let root=null,remembered=null,project=blankProject(),baseline=null,documents=[],proposal=null,editKind=null,editId=null,captureOrigin=false,busy=false,previewURL=null;
@@ -36,6 +36,7 @@ function render(){
   $('project-title').textContent=project.title||'My research project';$('folder-label').textContent=root.name.toUpperCase();$('next-action').textContent=nextAction(project);
   $('due-label').textContent=project.due?`${dateStatus(project.due)} · ${project.due}`:'No final deadline set';
   $('saved-label').textContent=project.updatedAt?`Saved ${new Date(project.updatedAt).toLocaleString()}`:'Nothing saved yet';
+  renderMilestones();
   renderRecords('notes',project.records.filter(r=>['note','source'].includes(r.kind)),'Your notes can start rough. Add a thought or record your first source.');
   renderRecords('outline',project.records.filter(r=>r.kind==='outline'),'Start with one point you want the reader to understand. You can add and reorder sections as your thinking develops.');
   const tasks=$('tasks');tasks.replaceChildren();const items=project.records.filter(r=>r.kind==='task');
@@ -44,6 +45,18 @@ function render(){
   const files=$('files');files.replaceChildren();if(!documents.length)files.append(node('div','Add .docx, PDF, .txt, or .md files to your project folder, then select Refresh files.','empty'));
   for(const doc of documents){const b=node('button',undefined,'file-button');const info=node('span',undefined,'file-info');info.append(node('strong',doc.name),node('small',doc.path));b.append(node('span',doc.name.split('.').pop().toUpperCase(),'file-type'),info,node('span','↗'));b.onclick=()=>guarded(()=>preview(doc));files.append(b);}
 }
+function renderMilestones(){
+ const container=$('milestones');container.replaceChildren();
+ for(const row of project.milestones||blankMilestones()){
+  const details=node('details',undefined,'milestone');const summary=node('summary');summary.append(node('strong',row.label),node('span',row.due?`${row.due} · ${dateStatus(row.due)}`:'Date not set','milestone-date'));details.append(summary);
+  const target=node('p',row.target||'Add your target for this stage.','milestone-target');details.append(target);
+  const grid=node('div',undefined,'milestone-fields');for(const [key,label] of [['criteria','Specific criteria'],['evidence','Evidence'],['rationale','Rationale']]){const item=node('div');item.append(node('h3',label),node('p',row[key]||'Not filled in yet'));grid.append(item);}details.append(grid);container.append(details);
+ }
+}
+$('edit-milestones').onclick=()=>openEditor('milestones');
+$('import-milestones').onclick=()=>{if(proposal)return; $('milestone-file').value='';$('milestone-file').click();};
+$('milestone-file').onchange=()=>guarded(async()=>{const file=$('milestone-file').files[0];if(!file)return;if(file.size>250000)throw new Error('Plan file is too large.');const rows=importMilestones(await file.text());stage({...project,milestones:rows},milestoneChanges(rows));});
+function milestoneChanges(rows){const prior=project.milestones||blankMilestones();return rows.flatMap((row,i)=>['target','criteria','evidence','rationale','due'].filter(k=>row[k]!==prior[i][k]).map(k=>({label:row.label+' · '+({due:'Target completion date',criteria:'Specific criteria'}[k]||k),before:prior[i][k],after:row[k]})));}
 function renderRecords(target,records,empty){const container=$(target);container.replaceChildren();if(!records.length)container.append(node('div',empty,'empty'));
   for(const r of records){const card=node('article',undefined,'card');const heading=node('div',undefined,'section-heading');heading.append(node('span',r.kind,'kind'));const edit=node('button','Edit','text-button');edit.onclick=()=>openEditor(r.kind,r);heading.append(edit);card.append(heading,node('h3',r.title),node('pre',r.body));if(r.source||r.locator)card.append(node('div',[r.source&&`Source: ${r.source}`,r.locator&&`Location: ${r.locator}`].filter(Boolean).join('\n'),'record-meta'));
     if(r.kind==='outline'){const order=node('div',undefined,'actions');for(const [label,delta] of [['Move up',-1],['Move down',1]]){const b=node('button',label,'text-button');const index=records.findIndex(x=>x.id===r.id);b.disabled=index+delta<0||index+delta>=records.length;b.onclick=()=>{const all=[...project.records],a=all.findIndex(x=>x.id===r.id),other=records[index+delta],z=all.findIndex(x=>x.id===other.id);[all[a],all[z]]=[all[z],all[a]];stage({...project,records:all},[{label:'Section order',before:records.map(x=>x.title).join('\n'),after:all.filter(x=>x.kind==='outline').map(x=>x.title).join('\n')}]);};order.append(b);}card.append(order);}container.append(card);
@@ -63,7 +76,11 @@ function openEditor(kind,record=null,body=''){
   editKind=kind;editId=record?.id||null;captureOrigin=!!body;const fields=$('editor-fields');fields.replaceChildren();
   const names={note:'reading note',source:'source record',outline:'outline section',task:'task',plan:'project & plan'};
   $('editor-title').textContent=(record?'Edit ':'Add ')+names[kind];
-  if(kind==='plan'){
+  if(kind==='milestones'){
+    $('editor-title').textContent='Research milestone plan';
+    fields.append(node('p','Fill in what you know. Leave uncertain fields blank; no example requirements are added.','fine'));
+    (project.milestones||blankMilestones()).forEach((row,i)=>{fields.append(node('h3',row.label,'milestone-editor-title'));for(const [key,label]of [['target','Target — what will I accomplish?'],['criteria','Specific criteria — what measurable requirements?'],['evidence','Evidence — what will I show?'],['rationale','Rationale — why this stage?'],['due','Target completion date']])fields.append(field('m'+i+'_'+key,label,row[key],key==='due'?'date':'textarea'));});
+  }else if(kind==='plan'){
     $('editor-title').textContent='Project & plan';for(const [name,label,type]of [['title','Project title','text'],['assignment','Assignment requirements & AI-use rules','textarea'],['question','Research question','textarea'],['due','Final due date','date'],['next','One next step','textarea']])fields.append(field(name,label,project[name],type));
   }else{
     fields.append(field('title',kind==='source'?'Source title':'Short title',record?.title||''));
@@ -77,7 +94,9 @@ function openEditor(kind,record=null,body=''){
 $('edit-plan').onclick=()=>openEditor('plan');for(const kind of ['note','source','outline','task'])$('new-'+kind).onclick=()=>openEditor(kind);
 $('capture-note').onclick=()=>{if(!$('quick-note').value.trim()){notify('Start with one rough thought.');$('quick-note').focus();return;}openEditor('note',null,$('quick-note').value);};
 $('editor-form').onsubmit=e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.currentTarget));let next,changes=[];
-  try{if(editKind==='plan'){next={...project,...data};for(const [key,label]of [['title','Project title'],['assignment','Assignment'],['question','Research question'],['due','Deadline'],['next','Next step']])if(project[key]!==data[key])changes.push({label,before:project[key],after:data[key]});}
+  try{if(editKind==='milestones'){
+    const rows=validateMilestones(blankMilestones().map((row,i)=>({...row,...Object.fromEntries(['target','criteria','evidence','rationale','due'].map(k=>[k,data['m'+i+'_'+k]]))})));next={...project,milestones:rows};changes=milestoneChanges(rows);
+  }else if(editKind==='plan'){next={...project,...data};for(const [key,label]of [['title','Project title'],['assignment','Assignment'],['question','Research question'],['due','Deadline'],['next','Next step']])if(project[key]!==data[key])changes.push({label,before:project[key],after:data[key]});}
     else{const record={kind:editKind,title:data.title,body:data.body,source:data.source||'',locator:data.locator||'',due:data.due||''};const old=editId?project.records.find(r=>r.id===editId):null;next=old?{...project,records:project.records.map(r=>r.id===editId?{...r,...record}:r)}:addRecord(project,record);for(const [key,label]of [['title','Title'],['body','Content'],['source','Source'],['locator','Location'],['due','Planned date']])if((old?.[key]||'')!==record[key])changes.push({label,before:old?.[key]||'',after:record[key]});}
     if(!changes.length){notify('No changes to save.');return;}stage(next,changes,true);
   }catch(e){fail(e);}

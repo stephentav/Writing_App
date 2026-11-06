@@ -40,7 +40,7 @@ Approved project data lives in `Writing Room/project.json` inside the selected f
 No file content or audio is sent to an AI service in this release. The Site host still serves the application and may maintain ordinary access logs. There is no API key in source or browser storage.
 
 ## Verification and limitations
-13 automated tests cover model behavior, reviewed saves, conflict rejection, recovery copies, and DOM interactions. Build and HTTP asset checks pass. Actual Chrome picker permissions, microphone recording, PDF rendering, and visual layout require the [manual pilot](docs/PILOT.md); they were not browser-tested in the authoring session.
+16 automated tests cover model behavior, reviewed saves, conflict rejection, recovery copies, and DOM interactions. Build and HTTP asset checks pass. Actual Chrome picker permissions, microphone recording, PDF rendering, and visual layout require the [manual pilot](docs/PILOT.md); they were not browser-tested in the authoring session.
 
 PDF previews use the browser viewer, with no OCR or text extraction yet. Word previews extract text only, so layout and page numbers may differ. Files are limited to 25 MB for preview. Files are refreshed manually. Folder scanning is limited to eight levels and 3,000 entries. Use a dedicated assignment folder.
 
@@ -50,3 +50,6 @@ Recording stops after three minutes. Audio is not transcribed. Unapproved conten
 
 ## Next phase
 See [AI integration boundary](docs/AI-INTEGRATION.md). The parent can configure a server-side key later. No key is needed for this prototype.
+
+## Instructor milestones
+My Desk includes four expandable research milestones with editable target, criteria, evidence, rationale, and date fields. Labels are not computed progress. Use Edit milestones or Import plan (JSON with a milestones array) and approve the displayed changes. Existing projects without milestones remain compatible. Personal plan imports stay outside the repository.

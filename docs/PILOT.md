@@ -3,7 +3,7 @@
 Use a disposable assignment folder with copies. No API key is required.
 
 ## Automated checks already run
-`npm test`: 13 passing tests; `npm run build`: passes. HTTP preview returned 200 for HTML, JS, and CSS. These checks do not exercise actual browser permissions, microphone hardware, PDF rendering, or visual layout.
+`npm test`: 16 passing tests; `npm run build`: passes. HTTP preview returned 200 for HTML, JS, and CSS. These checks do not exercise actual browser permissions, microphone hardware, PDF rendering, or visual layout.
 
 ## Manual checks — pending
 - Open the deployed URL in a regular top-level Chrome tab. Folder picker may not work inside an embedded preview.

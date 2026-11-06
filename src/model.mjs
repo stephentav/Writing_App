@@ -13,6 +13,7 @@ export function validateProject(value) {
     for(const f of ['source','locator','due']) if(typeof r[f]!=='string') throw new Error('A project record is incomplete.');
     ids.add(r.id);
   }
+  if(value.milestones!==undefined)validateMilestones(value.milestones);
   return value;
 }
 export function addRecord(project, record) {
@@ -36,3 +37,11 @@ export function snapshot(project, now=new Date()) {
   validateProject(project);
   return JSON.stringify({...project,updatedAt:now.toISOString()}, null, 2)+'\n';
 }
+
+export const MILESTONES = ['25% — Foundation','50% — Development','75% — Synthesis','100% — Research Complete'];
+export function blankMilestones(){return MILESTONES.map(label=>({label,target:'',criteria:'',evidence:'',rationale:'',due:''}));}
+export function validateMilestones(rows){
+ if(!Array.isArray(rows)||rows.length!==4)throw new Error('The plan must contain four milestones.');
+ return rows.map((row,i)=>{if(!row||row.label!==MILESTONES[i])throw new Error('Milestone labels do not match the instructor plan.');for(const key of ['target','criteria','evidence','rationale','due'])if(typeof row[key]!=='string'||row[key].length>10000)throw new Error('Invalid milestone field.');if(row.due&&!/^\d{4}-\d{2}-\d{2}$/.test(row.due))throw new Error('Use YYYY-MM-DD for milestone dates.');return {...row};});
+}
+export function importMilestones(text){const data=JSON.parse(text);return validateMilestones(data.milestones??data);}
