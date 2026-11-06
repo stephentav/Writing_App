@@ -1,0 +1,30 @@
+# Chrome-on-Mac pilot
+
+Use a disposable assignment folder with copies. No API key is required.
+
+## Automated checks already run
+`npm test`: 13 passing tests; `npm run build`: passes. HTTP preview returned 200 for HTML, JS, and CSS. These checks do not exercise actual browser permissions, microphone hardware, PDF rendering, or visual layout.
+
+## Manual checks — pending
+- Open the deployed URL in a regular top-level Chrome tab. Folder picker may not work inside an embedded preview.
+- Cancel the folder picker: no error page and no writes.
+- Open the folder: app lists supported documents and keeps original file contents unchanged.
+- Add a note, cancel review: folder is unchanged and rough text remains.
+- Approve a note: verify project.json and exact student-authored text.
+- Edit a source and reorder an outline: review clearly describes each update.
+- Save twice: verify a prior project snapshot under history.
+- Change project.json externally, then attempt a stale save: app rejects it. Cancel, refresh, and reapply changes.
+- Deny write permission or remove the drive: error is visible, no false saved message.
+- Reopen after closing the tab: saved state resumes after folder permission is granted.
+- Preview .docx with punctuation and non-ASCII text; confirm text extraction without HTML execution.
+- Preview PDF; try a scanned PDF and note that OCR is not provided.
+- Open .gdoc or .doc: export instructions appear.
+- Edit a draft in Word, save there, refresh here: preview shows the saved version.
+- Allow microphone: record, stop, play back, approve, and locate the new audio file.
+- Deny microphone access: typed notes remain usable.
+- Leave with unsaved notes or audio: close warning appears when Chrome permits it.
+- Verify narrow-window layout, keyboard focus, dialogs, and screen-reader labels.
+- Confirm no interface claims AI coaching or transcription is active.
+
+## Pilot success
+The student can capture one thought, attach a source, add one next step, approve a save, and resume without reconstructing the work. Ask what felt like extra administration before adding features.
