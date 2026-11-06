@@ -1,0 +1,6 @@
+# Private working material stays outside this repository
+student-work/
+private/
+.env
+.env.*
+.DS_Store
