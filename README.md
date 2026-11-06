@@ -1,2 +1,64 @@
-# Writing_App
-This application is intended to be used to support the development of an 11th grade research project.
+# Writing Room — browser prototype
+A quiet workspace for student-owned research and writing. The app opens a student-selected local folder in Chrome on Mac, shows documents when needed, and saves organizational work only after review and approval.
+
+**Authenticated coaching prototype:** local organizational work uses approved saves. A server-side OpenAI connection powers the in-app text coach. Speech transcription remains deferred. The hosted site is owner-private with ChatGPT sign-in; no public registration is enabled.
+
+## Run locally
+Requires Node.js 22+.
+
+```sh
+npm ci
+npm test
+npm run build
+```
+Deploy `dist/server/index.js` through Sites. The server relies on authenticated identity headers supplied by Sites; do not expose it through a host that accepts arbitrary client-supplied identity headers. Open the private deployed URL in desktop Chrome. The old static preview command has been removed.
+
+## Try it
+1. Make a test folder with a .docx, PDF, and text note. Use copies for the first pilot.
+2. Open the app and select that folder. Chrome requests folder access.
+3. Choose **Edit project & plan** to enter requirements, research question, due date, and one next step.
+4. Type a rough thought, choose **Review as a note**, then approve the displayed update.
+5. Add source records, outline sections, and dated tasks. All changes use the same approval flow.
+6. Under **My files**, preview saved documents. Edit drafts in Word or Google Docs; export Google Docs to .docx/PDF in the selected folder and refresh here.
+7. Record an idea, listen back, and approve saving the audio separately.
+8. Close and return. Reopen the last folder (Chrome may ask for permission again) to load saved project state.
+
+## Working now
+- Folder selection and remembered handle in IndexedDB; no project content is cached there.
+- Read-only .docx text, PDF, .txt, and .md previews. Legacy .doc and .gdoc shortcuts show export guidance.
+- Student-authored notes, source details, outline sections with source/location fields, and tasks.
+- Project requirements, research question, due dates, next step, and completion tracking.
+- Change review, explicit approval, exact save verification, recovery copies, and stale-state rejection.
+- Outline reordering and record editing through approval.
+- Local microphone recording, playback, and separately approved audio saves.
+- Before-unload warning for unsaved capture, proposals, or audio where the browser supports it.
+
+## Data ownership
+Approved project data lives in `Writing Room/project.json` inside the selected folder. Earlier snapshots are retained in `Writing Room/history/`. Approved recordings live in `Writing Room/recordings/`. Source documents and drafts are never written by the app. The folder handle is the only information remembered in browser IndexedDB.
+
+Sending a coaching message shares the reviewed context and recent conversation with OpenAI. Context includes project requirements, dates, tasks, milestones, section descriptions and explicitly selected notes/source details. Attachments and audio are not uploaded. The Site host still serves the application and may maintain ordinary access logs. There is no API key in source or browser storage.
+
+## Verification and limitations
+31 automated tests cover model behavior, reviewed saves, conflict rejection, recovery copies, and DOM interactions. The server build passes. Actual Chrome picker permissions, microphone recording, PDF rendering, and visual layout require the [manual pilot](docs/PILOT.md); they were not browser-tested in the authoring session.
+
+PDF previews use the browser viewer, with no OCR or text extraction yet. Word previews extract text only, so layout and page numbers may differ. Files are limited to 25 MB for preview. Files are refreshed manually. Folder scanning is limited to eight levels and 3,000 entries. Use a dedicated assignment folder.
+
+Conflict detection checks the current saved project before writing; it is not a cross-application filesystem transaction. Same-origin tabs use Web Locks when available. Avoid editing project.json concurrently in other applications; recovery snapshots are retained.
+
+Recording stops after three minutes. Audio is not transcribed. Unapproved content is not persisted across a browser crash; browser close warnings are best-effort. There are no background deadline notifications.
+
+## Next phase
+See [AI integration and authentication](docs/AI-INTEGRATION.md). Speech transcription, broader invitations and billing product flows remain future work.
+
+## Instructor milestones
+My Desk includes four expandable research milestones with editable target, criteria, evidence, rationale, and date fields. Labels are not computed progress. Use Edit milestones or Import plan (JSON with a milestones array) and approve the displayed changes. Existing projects without milestones remain compatible. Personal plan imports stay outside the repository.
+
+## Sources, notes, and attachments
+Sources expand into multiple linked notes. Add a note from a source card or choose its source in the note editor. Existing free-text source descriptions are preserved; legacy notes appear as unassigned until the student explicitly links them. Links use stable record IDs, so renaming a source retains its notes.
+
+Notes can link to up to 30 files already inside the selected project folder: PNG, JPEG, GIF, WebP, PDF, DOCX, TXT, or Markdown. Add files using Finder, then use Refresh attachment choices in the editor. Approval saves relative links only; files are not copied or uploaded. Attachments open in the read-only preview. Moving or renaming a file requires relinking it. SVG, HEIC, old DOC, and Google Docs shortcuts are not supported attachments. Image OCR and AI interpretation remain deferred.
+
+## Storyboard
+The working outline is now a storyboard with an unplaced idea bank and ordered sections. Notes are linked by ID, so source details and student wording stay attached. Drag a note or use its Move to menu; reorder notes and sections with buttons. Every change goes through review and approval. Existing outline records remain compatible.
+
+Plan with AI opens the in-app coach. Select notes, prepare and review the context, then send a question. Replies do not alter the board or write drafts. Review & save session notes creates an editable, labeled coaching record and requires approval. Conversations remain in tab memory until explicitly saved locally. Only the last five exchanges accompany follow-ups; prepared context is a snapshot. The optional copy-to-ChatGPT handoff remains available.
