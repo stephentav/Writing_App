@@ -4,15 +4,16 @@ import {blankProject,addRecord,toggleTask,nextAction,dateStatus,supported,blankM
 import {readState,saveApproved,saveRecording,listDocuments,rememberFolder,recallFolder,resolveAttachment} from './storage.mjs';
 const $=id=>document.getElementById(id);
 let root=null,remembered=null,project=blankProject(),baseline=null,documents=[],proposal=null,editKind=null,editId=null,captureOrigin=false,busy=false,previewURL=null;
+let coachHistory=[],coachRequest=null,coachInitialized=false,coachUnsaved=false,editorCoachSession=false;
 let recorder=null,stream=null,audioBlob=null,audioURL=null,audioSaved=false,recordTimer=null,noticeTimer=null;
 const prompts={remember:'What is one thing that stayed with you from your reading? Capture it in your own words. Add a page reference if you have one.',stuck:'Make this small: name one thing you already know and one question you still have. That is enough to begin.',writing:'Choose one section. Can you name its point, a source that supports it, and how the evidence connects? If so, try a rough explanation in your own words.'};
 function node(tag,text,className){const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(className)el.className=className;return el;}
 function notify(message,error=false){clearTimeout(noticeTimer);$('status').textContent=message;$('status').classList.toggle('error',error);noticeTimer=setTimeout(()=>$('status').textContent='',error?20000:7000);}
 function fail(e){if(e.name==='AbortError')return;notify(e.message||'Something went wrong. Your original documents were not edited.',true);}
-function dirty(){return !!$('quick-note').value.trim()||!!proposal||$('editor').open||(audioBlob&&!audioSaved)||recorder?.state==='recording';}
+function dirty(){return coachUnsaved||!!$('coach-question').value.trim()||!!coachRequest||!!$('quick-note').value.trim()||!!proposal||$('editor').open||(audioBlob&&!audioSaved)||recorder?.state==='recording';}
 function canLeave(){return !dirty()||confirm('There is unsaved work in this session. Leave it behind and continue?');}
 async function guarded(fn){if(busy)return;busy=true;try{await fn();}catch(e){fail(e);}finally{busy=false;}}
-function resetSession(){proposal=null;$('quick-note').value='';$('editor').close();$('review').close();discardAudio();closePreview();}
+function resetSession(){resetCoach();coachInitialized=false;$('ai-context').value='';$('ai-coach').close();proposal=null;$('quick-note').value='';$('editor').close();$('review').close();discardAudio();closePreview();}
 async function loadFolder(handle){
   // Read first, so a rejected or malformed project cannot replace the current one.
   const loaded=await readState(handle);const listed=await listDocuments(handle);
@@ -106,7 +107,7 @@ async function preview(doc){closePreview();$('preview').hidden=false;document.qu
 function field(name,label,value='',type='text'){const wrapper=node('div');const input=document.createElement(type==='textarea'?'textarea':'input');input.id='field-'+name;input.name=name;input.value=value;if(type!=='textarea')input.type=type;else input.rows=name==='body'?7:3;input.maxLength=name==='body'?50000:10000;if(name==='title')input.required=true;const l=node('label',label);l.htmlFor=input.id;wrapper.append(l,input);return wrapper;}
 function openEditor(kind,record=null,body='',sourceId=''){
   if(proposal){notify('Finish or cancel the current review first.',true);return;}
-  editKind=kind;editId=record?.id||null;captureOrigin=!!body;const fields=$('editor-fields');fields.replaceChildren();
+  editorCoachSession=false;editKind=kind;editId=record?.id||null;captureOrigin=!!body;const fields=$('editor-fields');fields.replaceChildren();
   const names={note:'reading note',source:'source record',outline:'outline section',task:'task',plan:'project & plan'};
   $('editor-title').textContent=(record?'Edit ':'Add ')+names[kind];
   if(kind==='milestones'){
@@ -152,7 +153,7 @@ $('approve').onclick=()=>guarded(async()=>{if(!proposal)return;const pending=pro
   else{
     const write=()=>saveApproved(root,baseline,pending.next,true);
     const saved=navigator.locks?await navigator.locks.request(`writing-room-${project.id}`,write):await write();
-    project=saved.project;baseline=saved.raw;if(captureOrigin&&pending.fromEditor){$('quick-note').value='';captureOrigin=false;}render();notify('Saved locally. Your original documents are unchanged.');
+    project=saved.project;baseline=saved.raw;if(pending.fromEditor&&editorCoachSession){coachUnsaved=false;editorCoachSession=false;}if(captureOrigin&&pending.fromEditor){$('quick-note').value='';captureOrigin=false;}render();notify('Saved locally. Your original documents are unchanged.');
   }
   $('review').close();
  }finally{$('approve').disabled=false;}
@@ -172,11 +173,32 @@ window.addEventListener('beforeunload',e=>{if(dirty()){e.preventDefault();e.retu
 window.addEventListener('pagehide',cleanupStream);
 if(!window.showDirectoryPicker){$('choose').disabled=true;notify('Use desktop Chrome to access a local project folder.',true);}
 
-$('plan-ai').onclick=()=>{
- const list=$('ai-notes');list.replaceChildren();$('ai-context').value='';$('ai-copy-status').textContent='';$('copy-ai').disabled=true;
+
+function resetCoach(){if(coachRequest)coachRequest.abort();coachRequest=null;coachHistory=[];coachUnsaved=false;$('coach-messages').replaceChildren();$('coach-question').value='';$('coach-question').disabled=false;$('coach-send').disabled=false;$('coach-save').disabled=true;$('ai-context').disabled=false;$('prepare-ai').disabled=false;$('coach-status').textContent='';}
+function openCoach(){
+ if(!coachInitialized){const list=$('ai-notes');list.replaceChildren();$('ai-context').value='';$('ai-copy-status').textContent='';$('copy-ai').disabled=true;
  for(const note of project.records.filter(r=>r.kind==='note')){const label=node('label',undefined,'attachment-option'),input=document.createElement('input');input.type='checkbox';input.value=note.id;label.append(input,node('span',note.title));list.append(label);}
- if(!list.children.length)list.append(node('p','No notes yet. You can still discuss the assignment and your existing sections.'));
+ if(!list.children.length)list.append(node('p','No notes yet. You can still discuss your assignment and sections.'));coachInitialized=true;}
  $('ai-coach').showModal();
+}
+$('plan-ai').onclick=openCoach;$('desk-coach').onclick=openCoach;
+$('prepare-ai').onclick=()=>{if(coachRequest)return;if(coachHistory.length&&!confirm('Start a new conversation with updated context? Save any useful takeaways first.'))return;resetCoach();$('ai-context').value=coachingPrompt(project,[...$('ai-notes').querySelectorAll('input:checked')].map(i=>i.value));$('copy-ai').disabled=false;};
+$('copy-ai').onclick=async()=>{try{await navigator.clipboard.writeText($('ai-context').value);$('ai-copy-status').textContent='Copied. Paste into ChatGPT to start a conversation.';}catch{$('ai-context').focus();$('ai-context').select();$('ai-copy-status').textContent='Select and copy the text manually.';}};
+$('coach-clear').onclick=()=>{if((coachUnsaved||$('coach-question').value.trim())&&!confirm('Clear this conversation? Save useful takeaways first.'))return;resetCoach();};
+$('ai-coach').addEventListener('close',()=>{if(coachRequest)coachRequest.abort();});
+$('coach-form').onsubmit=async e=>{
+ e.preventDefault();if(coachRequest)return;const question=$('coach-question').value.trim(),context=$('ai-context').value.trim();if(!question)return;if(!context){$('coach-status').textContent='Prepare and review your context first, or type the background you want to share.';$('coach-sharing').open=true;return;}
+ if(context.length>60000){$('coach-status').textContent='Select fewer notes or shorten the context to 60,000 characters.';return;}
+ const pending=new AbortController();coachRequest=pending;$('coach-send').disabled=true;$('coach-question').disabled=true;$('ai-context').disabled=true;$('prepare-ai').disabled=true;$('coach-status').textContent='Thinking through your question…';
+ try{const response=await fetch('/api/coach',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({context,messages:[...coachHistory.slice(-10),{role:'user',content:question}]}),signal:pending.signal});
+ if(!response.headers.get('content-type')?.includes('application/json'))throw new Error('Your sign-in may have expired. Refresh Writing Room and sign in again.');
+ const result=await response.json();if(!response.ok)throw new Error(result.error||'The coach could not respond. Try again.');if(typeof result.answer!=='string')throw new Error('The coach returned an unreadable response.');if(pending.signal.aborted)return;
+ coachHistory.push({role:'user',content:question},{role:'assistant',content:result.answer});coachUnsaved=true;
+ for(const [label,text] of [['You',question],['Coach',result.answer]]){const item=node('article',undefined,'coach-message '+(label==='You'?'from-student':'from-coach'));item.append(node('strong',label),node('p',text));$('coach-messages').append(item);}
+ $('coach-question').value='';$('coach-save').disabled=false;$('coach-sharing').open=false;$('coach-status').textContent='Not saved yet. Keep useful decisions and a next step before leaving.';
+ }catch(error){if(coachRequest!==pending)return;if(pending.signal.aborted)$('coach-status').textContent='Request stopped. Your question is still here.';else $('coach-status').textContent=error.message;}
+ finally{if(coachRequest!==pending)return;coachRequest=null;$('coach-send').disabled=false;$('coach-question').disabled=false;$('ai-context').disabled=false;$('prepare-ai').disabled=false;}
 };
-$('prepare-ai').onclick=()=>{$('ai-context').value=coachingPrompt(project,[...$('ai-notes').querySelectorAll('input:checked')].map(i=>i.value));$('copy-ai').disabled=false;};
-$('copy-ai').onclick=async()=>{try{await navigator.clipboard.writeText($('ai-context').value);$('ai-copy-status').textContent='Copied. Paste into ChatGPT to start the conversation. Apply the suggestions you choose to your board.';}catch{$('ai-context').focus();$('ai-context').select();$('ai-copy-status').textContent='Select and copy the text manually, then paste it into ChatGPT.';}};
+$('coach-save').onclick=()=>{if(!coachHistory.length||coachRequest)return;$('ai-coach').close();openEditor('note',null,'Coaching session — AI guidance, not draft text.\nReview this record and keep the decisions and next steps you want to save.\n\n'+coachHistory.map(m=>(m.role==='user'?'Student: ':'AI coach: ')+m.content).join('\n\n'));editorCoachSession=true;};
+$('sign-out').onclick=e=>{if(!canLeave())e.preventDefault();};
+if(typeof fetch==='function')fetch('/api/session',{credentials:'same-origin'}).then(r=>r.json()).then(session=>{$('account-label').textContent=session.signedIn?'Signed in · '+session.email:'Sign in required';}).catch(()=>{$('account-label').textContent='Private workspace';});

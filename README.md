@@ -1,18 +1,17 @@
 # Writing Room — browser prototype
 A quiet workspace for student-owned research and writing. The app opens a student-selected local folder in Chrome on Mac, shows documents when needed, and saves organizational work only after review and approval.
 
-**Version 0.2:** the local workflow works without an API key. AI coaching and transcription are intentionally disabled and labeled in the interface. No mock response is presented as AI. This replaces the template-only product direction; the earlier kit remains in its separate draft PR.
+**Authenticated coaching prototype:** local organizational work uses approved saves. A server-side OpenAI connection powers the in-app text coach. Speech transcription remains deferred. The hosted site is owner-private with ChatGPT sign-in; no public registration is enabled.
 
 ## Run locally
-Requires Node.js 22+ and Python 3 for the optional preview command.
+Requires Node.js 22+.
 
 ```sh
 npm ci
 npm test
 npm run build
-npm run dev
 ```
-Open http://127.0.0.1:4173 in desktop Chrome. For hosting, serve `dist/` over HTTPS. Do not open index.html directly from the filesystem.
+Deploy `dist/server/index.js` through Sites. The server relies on authenticated identity headers supplied by Sites; do not expose it through a host that accepts arbitrary client-supplied identity headers. Open the private deployed URL in desktop Chrome. The old static preview command has been removed.
 
 ## Try it
 1. Make a test folder with a .docx, PDF, and text note. Use copies for the first pilot.
@@ -37,10 +36,10 @@ Open http://127.0.0.1:4173 in desktop Chrome. For hosting, serve `dist/` over HT
 ## Data ownership
 Approved project data lives in `Writing Room/project.json` inside the selected folder. Earlier snapshots are retained in `Writing Room/history/`. Approved recordings live in `Writing Room/recordings/`. Source documents and drafts are never written by the app. The folder handle is the only information remembered in browser IndexedDB.
 
-No file content or audio is sent to an AI service in this release. The Site host still serves the application and may maintain ordinary access logs. There is no API key in source or browser storage.
+Sending a coaching message shares the reviewed context and recent conversation with OpenAI. Context includes project requirements, dates, tasks, milestones, section descriptions and explicitly selected notes/source details. Attachments and audio are not uploaded. The Site host still serves the application and may maintain ordinary access logs. There is no API key in source or browser storage.
 
 ## Verification and limitations
-23 automated tests cover model behavior, reviewed saves, conflict rejection, recovery copies, and DOM interactions. Build and HTTP asset checks pass. Actual Chrome picker permissions, microphone recording, PDF rendering, and visual layout require the [manual pilot](docs/PILOT.md); they were not browser-tested in the authoring session.
+31 automated tests cover model behavior, reviewed saves, conflict rejection, recovery copies, and DOM interactions. The server build passes. Actual Chrome picker permissions, microphone recording, PDF rendering, and visual layout require the [manual pilot](docs/PILOT.md); they were not browser-tested in the authoring session.
 
 PDF previews use the browser viewer, with no OCR or text extraction yet. Word previews extract text only, so layout and page numbers may differ. Files are limited to 25 MB for preview. Files are refreshed manually. Folder scanning is limited to eight levels and 3,000 entries. Use a dedicated assignment folder.
 
@@ -49,7 +48,7 @@ Conflict detection checks the current saved project before writing; it is not a 
 Recording stops after three minutes. Audio is not transcribed. Unapproved content is not persisted across a browser crash; browser close warnings are best-effort. There are no background deadline notifications.
 
 ## Next phase
-See [AI integration boundary](docs/AI-INTEGRATION.md). The parent can configure a server-side key later. No key is needed for this prototype.
+See [AI integration and authentication](docs/AI-INTEGRATION.md). Speech transcription, broader invitations and billing product flows remain future work.
 
 ## Instructor milestones
 My Desk includes four expandable research milestones with editable target, criteria, evidence, rationale, and date fields. Labels are not computed progress. Use Edit milestones or Import plan (JSON with a milestones array) and approve the displayed changes. Existing projects without milestones remain compatible. Personal plan imports stay outside the repository.
@@ -62,4 +61,4 @@ Notes can link to up to 30 files already inside the selected project folder: PNG
 ## Storyboard
 The working outline is now a storyboard with an unplaced idea bank and ordered sections. Notes are linked by ID, so source details and student wording stay attached. Drag a note or use its Move to menu; reorder notes and sections with buttons. Every change goes through review and approval. Existing outline records remain compatible.
 
-Plan with AI prepares an editable prompt containing the assignment, research question, section descriptions, and only the notes explicitly selected by the student. Copy it into ChatGPT and apply chosen suggestions manually. No content is sent automatically; attachments are not included. Integrated AI remains pending the secure API connection.
+Plan with AI opens the in-app coach. Select notes, prepare and review the context, then send a question. Replies do not alter the board or write drafts. Review & save session notes creates an editable, labeled coaching record and requires approval. Conversations remain in tab memory until explicitly saved locally. Only the last five exchanges accompany follow-ups; prepared context is a snapshot. The optional copy-to-ChatGPT handoff remains available.

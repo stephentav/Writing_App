@@ -3,7 +3,7 @@
 Use a disposable assignment folder with copies. No API key is required.
 
 ## Automated checks already run
-`npm test`: 20 passing tests; `npm run build`: passes. HTTP preview returned 200 for HTML, JS, and CSS. These checks do not exercise actual browser permissions, microphone hardware, PDF rendering, or visual layout.
+`npm test`: 31 passing tests; `npm run build`: passes. Authenticated Worker output builds successfully. These checks do not exercise actual browser permissions, microphone hardware, PDF rendering, or visual layout.
 
 ## Manual checks — pending
 - Open the deployed URL in a regular top-level Chrome tab. Folder picker may not work inside an embedded preview.
@@ -24,7 +24,7 @@ Use a disposable assignment folder with copies. No API key is required.
 - Deny microphone access: typed notes remain usable.
 - Leave with unsaved notes or audio: close warning appears when Chrome permits it.
 - Verify narrow-window layout, keyboard focus, dialogs, and screen-reader labels.
-- Confirm no interface claims AI coaching or transcription is active.
+- Verify the text coach; confirm transcription remains labeled unavailable.
 
 ## Pilot success
 The student can capture one thought, attach a source, add one next step, approve a save, and resume without reconstructing the work. Ask what felt like extra administration before adding features.
@@ -39,3 +39,5 @@ The student can capture one thought, attach a source, add one next step, approve
 - Uncheck an attachment and approve; the file must remain on disk.
 
 Storyboard checks: create two sections and multiple notes; drag or use Move to; cancel a move; approve a move and reopen the folder; reorder sections and notes; confirm source details remain attached. Test keyboard menus and narrow-screen layout. Plan with AI should include only selected note text and should not send anything automatically. Native browser drag and layout still need manual verification.
+
+Authentication pilot: signed-out visitors must be routed to sign-in; an uninvited account must be denied by Sites. Verify the signed-in account indicator and sign-out. Confirm Send shares only reviewed context, failures preserve the question, and session notes require approval. Native browser sign-in and layout require manual verification.
